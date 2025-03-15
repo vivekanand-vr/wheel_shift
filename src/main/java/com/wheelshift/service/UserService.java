@@ -93,8 +93,8 @@ public class UserService {
         userRepository.deleteById(id);
     }
     
-    public Optional<User> login(String username, String password) {
-        Optional<User> userOpt = userRepository.findByUsername(username);
+    public Optional<User> login(String email, String password) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
         
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -107,7 +107,7 @@ public class UserService {
             // Verify password
             if (passwordEncoder.matches(password, user.getPassword())) {
                 // Update last login time
-                updateLastLogin(user.getId());
+                updateLastLogin(user);
                 return Optional.of(user);
             }
         }
@@ -195,10 +195,7 @@ public class UserService {
      */
 
     @Transactional
-    public void updateLastLogin(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-        
+    public void updateLastLogin(User user) {
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
     }

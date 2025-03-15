@@ -36,14 +36,14 @@ public class UserController {
     
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String username = credentials.get("username");
+        String email = credentials.get("email");
         String password = credentials.get("password");
         
-        if (username == null || password == null) {
-            return ResponseEntity.badRequest().body("Username and password are required");
+        if (email == null || password == null) {
+            return ResponseEntity.badRequest().body("Email and password are required");
         }
         
-        Optional<User> userOpt = userService.login(username, password);
+        Optional<User> userOpt = userService.login(email, password);
         
         if (userOpt.isPresent()) {
             User user = userOpt.get();

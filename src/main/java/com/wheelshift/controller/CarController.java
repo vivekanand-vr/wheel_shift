@@ -10,6 +10,7 @@ import com.wheelshift.service.CarService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,15 @@ public class CarController {
     @GetMapping("/paged")
     public ResponseEntity<Page<Car>> getAllCarsPaged(Pageable pageable) {
         return ResponseEntity.ok(carService.getAllCars(pageable));
+    }
+    
+    @GetMapping("/basic-details/paged")
+    public ResponseEntity<Page<CarBasicDetails>> getCarBasicDetailsPaged(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(carService.getCarBasicDetailsPaged(pageable));
     }
 
     @GetMapping("/{id}")
@@ -111,21 +121,6 @@ public class CarController {
         return ResponseEntity.ok(carService.moveToLocation(id, locationId));
     }
 
-    // Search operations
-    @GetMapping("/search")
-    public ResponseEntity<Page<Car>> searchCars(
-            @RequestParam String searchTerm, 
-            Pageable pageable) {
-        return ResponseEntity.ok(carService.searchCars(searchTerm, pageable));
-    }
-
-    @PostMapping("/search/advanced")
-    public ResponseEntity<Page<Car>> searchCarsAdvanced(
-            @RequestBody CarSearchCriteria criteria, 
-            Pageable pageable) {
-        return ResponseEntity.ok(carService.searchCarsAdvanced(criteria, pageable));
-    }
-
     /**
    	 *	   _____ ______          _____   _____ _    _ 
    	 *	  / ____|  ____|   /\   |  __ \ / ____| |  | |
@@ -137,6 +132,25 @@ public class CarController {
    	 *				SEARCH & FILTERS OPERATIONS
      */ 
 
+    @GetMapping("/search")
+    public ResponseEntity<Page<Car>> searchCars(
+            @RequestParam String searchTerm,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(carService.searchCars(searchTerm, pageable));
+    }
+
+    @PostMapping("/search/advanced")
+    public ResponseEntity<Page<Car>> searchCarsAdvanced(
+            @RequestBody CarSearchCriteria criteria, 
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size)  {
+    	Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(carService.searchCarsAdvanced(criteria, pageable));
+    }
+    
     @GetMapping("/vin/{vinNumber}")
     public ResponseEntity<Car> findByVinNumber(@PathVariable String vinNumber) {
         Optional<Car> car = carService.findByVinNumber(vinNumber);

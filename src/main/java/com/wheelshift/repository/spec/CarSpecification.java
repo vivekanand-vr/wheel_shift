@@ -3,6 +3,8 @@ package com.wheelshift.repository.spec;
 import com.wheelshift.model.Car;
 import com.wheelshift.model.CarModel;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
@@ -10,71 +12,81 @@ import java.time.LocalDate;
 
 public class CarSpecification {
 
+    // Helper method to get or create a join
+    @SuppressWarnings("unchecked")
+	private static Join<Car, CarModel> getCarModelJoin(Root<Car> root) {
+        return root.getJoins().stream()
+            .filter(j -> j.getAttribute().getName().equals("carModel"))
+            .map(j -> (Join<Car, CarModel>) j)
+            .findFirst()
+            .orElseGet(() -> root.join("carModel", JoinType.LEFT));
+    }
+
     public static Specification<Car> hasStatus(String status) {
         return (root, query, cb) -> {
-            if (status == null) {
+            if (status == null || status.trim().isEmpty()) {
                 return null;
             }
-            return cb.equal(root.get("currentStatus"), status);
+            return cb.equal(cb.lower(root.get("currentStatus")), status.toLowerCase());
         };
     }
     
     public static Specification<Car> hasMake(String make) {
         return (root, query, cb) -> {
-            if (make == null) {
+            if (make == null || make.trim().isEmpty()) {
                 return null;
             }
-            Join<Car, CarModel> modelJoin = root.join("carModel");
-            return cb.equal(modelJoin.get("make"), make);
+            Join<Car, CarModel> modelJoin = getCarModelJoin(root);
+            return cb.equal(cb.lower(modelJoin.get("make")), make.toLowerCase());
         };
     }
     
     public static Specification<Car> hasModel(String model) {
         return (root, query, cb) -> {
-            if (model == null) {
+            if (model == null || model.trim().isEmpty()) {
                 return null;
             }
-            Join<Car, CarModel> modelJoin = root.join("carModel");
-            return cb.equal(modelJoin.get("model"), model);
+            Join<Car, CarModel> modelJoin = getCarModelJoin(root);
+            return cb.equal(cb.lower(modelJoin.get("model")), model.toLowerCase());
         };
     }
     
     public static Specification<Car> hasBodyType(String bodyType) {
         return (root, query, cb) -> {
-            if (bodyType == null) {
+            if (bodyType == null || bodyType.trim().isEmpty()) {
                 return null;
             }
-            Join<Car, CarModel> modelJoin = root.join("carModel");
-            return cb.equal(modelJoin.get("bodyType"), bodyType);
+            Join<Car, CarModel> modelJoin = getCarModelJoin(root);
+            return cb.equal(cb.lower(modelJoin.get("bodyType")), bodyType.toLowerCase());
         };
     }
     
     public static Specification<Car> hasFuelType(String fuelType) {
         return (root, query, cb) -> {
-            if (fuelType == null) {
+            if (fuelType == null || fuelType.trim().isEmpty()) {
                 return null;
             }
-            Join<Car, CarModel> modelJoin = root.join("carModel");
-            return cb.equal(modelJoin.get("fuelType"), fuelType);
+            Join<Car, CarModel> modelJoin = getCarModelJoin(root);
+            return cb.equal(cb.lower(modelJoin.get("fuelType")), fuelType.toLowerCase());
         };
     }
     
     public static Specification<Car> hasTransmissionType(String transmissionType) {
         return (root, query, cb) -> {
-            if (transmissionType == null) {
+            if (transmissionType == null || transmissionType.trim().isEmpty()) {
                 return null;
             }
-            Join<Car, CarModel> modelJoin = root.join("carModel");
-            return cb.equal(modelJoin.get("transmissionType"), transmissionType);
+            Join<Car, CarModel> modelJoin = getCarModelJoin(root);
+            return cb.equal(cb.lower(modelJoin.get("transmissionType")), transmissionType.toLowerCase());
         };
     }
     
     public static Specification<Car> hasColor(String color) {
         return (root, query, cb) -> {
-            if (color == null) {
+            if (color == null || color.trim().isEmpty()) {
                 return null;
             }
-            return cb.equal(root.get("color"), color);
+            return cb.equal(cb.lower(root.get("color")), color.toLowerCase());
         };
     }
     
@@ -89,9 +101,18 @@ public class CarSpecification {
     
     public static Specification<Car> hasYearBetween(Integer fromYear, Integer toYear) {
         return (root, query, cb) -> {
-            if (fromYear == null || toYear == null) {
+            if (fromYear == null && toYear == null) {
                 return null;
             }
+            
+            if (fromYear == null) {
+                return cb.lessThanOrEqualTo(root.get("year"), toYear);
+            }
+            
+            if (toYear == null) {
+                return cb.greaterThanOrEqualTo(root.get("year"), fromYear);
+            }
+            
             return cb.between(root.get("year"), fromYear, toYear);
         };
     }
@@ -155,6 +176,7 @@ public class CarSpecification {
             if (locationId == null) {
                 return null;
             }
+            // Use a left join to ensure cars without locations are still included in other queries
             return cb.equal(root.get("storageLocation").get("id"), locationId);
         };
     }
@@ -167,7 +189,7 @@ public class CarSpecification {
             
             String likePattern = "%" + searchText.toLowerCase() + "%";
             
-            Join<Car, CarModel> modelJoin = root.join("carModel");
+            Join<Car, CarModel> modelJoin = getCarModelJoin(root);
             
             return cb.or(
                 cb.like(cb.lower(root.get("vinNumber")), likePattern),

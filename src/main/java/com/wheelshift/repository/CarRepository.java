@@ -33,6 +33,9 @@ public interface CarRepository extends JpaRepository<Car, Long>, JpaSpecificatio
     @Query("SELECT c FROM Car c")
     List<CarBasicDetails> findAllCarBasicDetails();
     
+    @Query("SELECT c FROM Car c")
+    Page<CarBasicDetails> findAllCarBasicDetails(Pageable pageable);
+    
     // Queries by model properties
     List<Car> findByCarModel_Make(String make);
     

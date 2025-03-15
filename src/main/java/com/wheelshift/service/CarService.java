@@ -66,6 +66,10 @@ public class CarService {
         return carRepository.findAllCarBasicDetails();
     }
     
+    public Page<CarBasicDetails> getCarBasicDetailsPaged(Pageable pageable) {
+        return carRepository.findAllCarBasicDetails(pageable);
+    }
+    
     public Car getCarById(Long id) {
         return carRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Car not found with id: " + id));
@@ -374,61 +378,100 @@ public class CarService {
     }
     
     public Page<Car> searchCarsAdvanced(CarSearchCriteria criteria, Pageable pageable) {
+        log.debug("Searching cars with criteria: {}", criteria);
+        
+        // Create an empty specification
         Specification<Car> spec = Specification.where(null);
         
-        if (criteria.getMake() != null) {
-            spec = spec.and(CarSpecification.hasMake(criteria.getMake()));
+        // Add individual specifications based on criteria
+        // Add debugging to identify problematic filters
+        try {
+            if (criteria.getMake() != null && !criteria.getMake().trim().isEmpty()) {
+                Specification<Car> makeSpec = CarSpecification.hasMake(criteria.getMake());
+                spec = spec.and(makeSpec);
+                log.debug("Added make filter: {}", criteria.getMake());
+            }
+            
+            if (criteria.getModel() != null && !criteria.getModel().trim().isEmpty()) {
+                Specification<Car> modelSpec = CarSpecification.hasModel(criteria.getModel());
+                spec = spec.and(modelSpec);
+                log.debug("Added model filter: {}", criteria.getModel());
+            }
+            
+            if (criteria.getBodyType() != null && !criteria.getBodyType().trim().isEmpty()) {
+                Specification<Car> bodyTypeSpec = CarSpecification.hasBodyType(criteria.getBodyType());
+                spec = spec.and(bodyTypeSpec);
+                log.debug("Added bodyType filter: {}", criteria.getBodyType());
+            }
+            
+            if (criteria.getFuelType() != null && !criteria.getFuelType().trim().isEmpty()) {
+                Specification<Car> fuelTypeSpec = CarSpecification.hasFuelType(criteria.getFuelType());
+                spec = spec.and(fuelTypeSpec);
+                log.debug("Added fuelType filter: {}", criteria.getFuelType());
+            }
+            
+            if (criteria.getTransmissionType() != null && !criteria.getTransmissionType().trim().isEmpty()) {
+                Specification<Car> transmissionTypeSpec = CarSpecification.hasTransmissionType(criteria.getTransmissionType());
+                spec = spec.and(transmissionTypeSpec);
+                log.debug("Added transmissionType filter: {}", criteria.getTransmissionType());
+            }
+            
+            if (criteria.getColor() != null && !criteria.getColor().trim().isEmpty()) {
+                Specification<Car> colorSpec = CarSpecification.hasColor(criteria.getColor());
+                spec = spec.and(colorSpec);
+                log.debug("Added color filter: {}", criteria.getColor());
+            }
+            
+            if (criteria.getYearFrom() != null || criteria.getYearTo() != null) {
+                Specification<Car> yearSpec = CarSpecification.hasYearBetween(criteria.getYearFrom(), criteria.getYearTo());
+                spec = spec.and(yearSpec);
+                log.debug("Added year range filter: {} to {}", criteria.getYearFrom(), criteria.getYearTo());
+            }
+            
+            if (criteria.getMinPrice() != null || criteria.getMaxPrice() != null) {
+                Specification<Car> priceSpec = CarSpecification.hasPriceBetween(criteria.getMinPrice(), criteria.getMaxPrice());
+                spec = spec.and(priceSpec);
+                log.debug("Added price range filter: {} to {}", criteria.getMinPrice(), criteria.getMaxPrice());
+            }
+            
+            if (criteria.getMinMileage() != null || criteria.getMaxMileage() != null) {
+                Specification<Car> mileageSpec = CarSpecification.hasMileageBetween(criteria.getMinMileage(), criteria.getMaxMileage());
+                spec = spec.and(mileageSpec);
+                log.debug("Added mileage range filter: {} to {}", criteria.getMinMileage(), criteria.getMaxMileage());
+            }
+            
+            if (criteria.getStatus() != null && !criteria.getStatus().trim().isEmpty()) {
+                Specification<Car> statusSpec = CarSpecification.hasStatus(criteria.getStatus());
+                spec = spec.and(statusSpec);
+                log.debug("Added status filter: {}", criteria.getStatus());
+            }
+            
+            if (criteria.getLocationId() != null) {
+                Specification<Car> locationSpec = CarSpecification.hasLocationId(criteria.getLocationId());
+                spec = spec.and(locationSpec);
+                log.debug("Added location filter: {}", criteria.getLocationId());
+            }
+            
+            if (criteria.getPurchaseDateFrom() != null || criteria.getPurchaseDateTo() != null) {
+                Specification<Car> purchaseDateSpec = CarSpecification.purchasedBetween(criteria.getPurchaseDateFrom(), criteria.getPurchaseDateTo());
+                spec = spec.and(purchaseDateSpec);
+                log.debug("Added purchase date range filter: {} to {}", criteria.getPurchaseDateFrom(), criteria.getPurchaseDateTo());
+            }
+            
+            if (criteria.getSearchText() != null && !criteria.getSearchText().trim().isEmpty()) {
+                Specification<Car> textSpec = CarSpecification.containsText(criteria.getSearchText());
+                spec = spec.and(textSpec);
+                log.debug("Added text search filter: {}", criteria.getSearchText());
+            }
+            
+            // Execute the query with the combined specification
+            Page<Car> results = carRepository.findAll(spec, pageable);
+            log.debug("Search results count: {}", results.getTotalElements());
+            return results;
+        } catch (Exception e) {
+            log.error("Error executing search query: {}", e.getMessage(), e);
+            throw e;
         }
-        
-        if (criteria.getModel() != null) {
-            spec = spec.and(CarSpecification.hasModel(criteria.getModel()));
-        }
-        
-        if (criteria.getBodyType() != null) {
-            spec = spec.and(CarSpecification.hasBodyType(criteria.getBodyType()));
-        }
-        
-        if (criteria.getFuelType() != null) {
-            spec = spec.and(CarSpecification.hasFuelType(criteria.getFuelType()));
-        }
-        
-        if (criteria.getTransmissionType() != null) {
-            spec = spec.and(CarSpecification.hasTransmissionType(criteria.getTransmissionType()));
-        }
-        
-        if (criteria.getColor() != null) {
-            spec = spec.and(CarSpecification.hasColor(criteria.getColor()));
-        }
-        
-        if (criteria.getYearFrom() != null || criteria.getYearTo() != null) {
-            spec = spec.and(CarSpecification.hasYearBetween(criteria.getYearFrom(), criteria.getYearTo()));
-        }
-        
-        if (criteria.getMinPrice() != null || criteria.getMaxPrice() != null) {
-            spec = spec.and(CarSpecification.hasPriceBetween(criteria.getMinPrice(), criteria.getMaxPrice()));
-        }
-        
-        if (criteria.getMinMileage() != null || criteria.getMaxMileage() != null) {
-            spec = spec.and(CarSpecification.hasMileageBetween(criteria.getMinMileage(), criteria.getMaxMileage()));
-        }
-        
-        if (criteria.getStatus() != null) {
-            spec = spec.and(CarSpecification.hasStatus(criteria.getStatus()));
-        }
-        
-        if (criteria.getLocationId() != null) {
-            spec = spec.and(CarSpecification.hasLocationId(criteria.getLocationId()));
-        }
-        
-        if (criteria.getPurchaseDateFrom() != null || criteria.getPurchaseDateTo() != null) {
-            spec = spec.and(CarSpecification.purchasedBetween(criteria.getPurchaseDateFrom(), criteria.getPurchaseDateTo()));
-        }
-        
-        if (criteria.getSearchText() != null && !criteria.getSearchText().trim().isEmpty()) {
-            spec = spec.and(CarSpecification.containsText(criteria.getSearchText()));
-        }
-        
-        return carRepository.findAll(spec, pageable);
     }
     
     public Optional<Car> findByVinNumber(String vinNumber) {
