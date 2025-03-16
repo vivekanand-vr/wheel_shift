@@ -14,7 +14,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "cars")
+@Table(name = "cars", indexes = {
+    @Index(name = "idx_car_vin", columnList = "vinNumber", unique = true),
+    @Index(name = "idx_car_registration", columnList = "registrationNumber"),
+    @Index(name = "idx_car_status", columnList = "currentStatus"),
+    @Index(name = "idx_car_model", columnList = "model_id"),
+    @Index(name = "idx_car_location", columnList = "location_id"),
+    @Index(name = "idx_car_year", columnList = "year")
+})
 @Data
 public class Car {
     
@@ -40,6 +47,7 @@ public class Car {
     
     private BigDecimal engineCapacity;
     
+    @Column(nullable = false)
     private String currentStatus;
     
     private LocalDate purchaseDate;

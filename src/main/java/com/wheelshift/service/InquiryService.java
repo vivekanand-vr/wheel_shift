@@ -1,11 +1,13 @@
 package com.wheelshift.service;
 
 import com.wheelshift.model.Car;
+import com.wheelshift.model.Client;
+import com.wheelshift.model.Employee;
 import com.wheelshift.model.Inquiry;
-import com.wheelshift.model.User;
 import com.wheelshift.repository.CarRepository;
+import com.wheelshift.repository.ClientRepository;
+import com.wheelshift.repository.EmployeeRepository;
 import com.wheelshift.repository.InquiryRepository;
-import com.wheelshift.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,9 +24,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InquiryService {
     
-    private final InquiryRepository inquiryRepository;
+	private final InquiryRepository inquiryRepository;
     private final CarRepository carRepository;
-    private final UserRepository userRepository;
+    private final ClientRepository clientRepository;
+    private final EmployeeRepository employeeRepository;
     
     /**
 	 *	   _____ _____  _    _ _____  
@@ -60,13 +63,11 @@ public class InquiryService {
         return inquiryRepository.findById(id)
                 .map(inquiry -> {
                     inquiry.setCar(updatedInquiry.getCar());
-                    inquiry.setCustomerName(updatedInquiry.getCustomerName());
-                    inquiry.setCustomerEmail(updatedInquiry.getCustomerEmail());
-                    inquiry.setCustomerPhone(updatedInquiry.getCustomerPhone());
+                    inquiry.setClient(updatedInquiry.getClient());
+                    inquiry.setAssignedEmployee(updatedInquiry.getAssignedEmployee());
                     inquiry.setInquiryType(updatedInquiry.getInquiryType());
                     inquiry.setMessage(updatedInquiry.getMessage());
                     inquiry.setStatus(updatedInquiry.getStatus());
-                    inquiry.setAssignedTo(updatedInquiry.getAssignedTo());
                     inquiry.setResponse(updatedInquiry.getResponse());
                     inquiry.setResponseDate(updatedInquiry.getResponseDate());
                     
@@ -100,17 +101,22 @@ public class InquiryService {
         return inquiryRepository.findByStatus(status);
     }
     
-    public List<Inquiry> getInquiriesByUser(Long userId) {
-        Optional<User> user = userRepository.findById(userId);
-        return user.map(inquiryRepository::findByAssignedTo).orElse(List.of());
+    public List<Inquiry> getInquiriesByEmployee(Long employeeId) {
+        Optional<Employee> employee = employeeRepository.findById(employeeId);
+        return employee.map(inquiryRepository::findByAssignedEmployee).orElse(List.of());
     }
     
-    public List<Inquiry> getInquiriesByCustomerEmail(String email) {
-        return inquiryRepository.findByCustomerEmailContainingIgnoreCase(email);
+    public List<Inquiry> getInquiriesByClient(Long clientId) {
+        Optional<Client> client = clientRepository.findById(clientId);
+        return client.map(inquiryRepository::findByClient).orElse(List.of());
     }
     
-    public List<Inquiry> getInquiriesByCustomerName(String name) {
-        return inquiryRepository.findByCustomerNameContainingIgnoreCase(name);
+    public List<Inquiry> getInquiriesByClientEmail(String email) {
+        return inquiryRepository.findByClientEmailContainingIgnoreCase(email);
+    }
+    
+    public List<Inquiry> getInquiriesByClientName(String name) {
+        return inquiryRepository.findByClientNameContainingIgnoreCase(name);
     }
     
     public List<Inquiry> getInquiriesByType(String inquiryType) {
@@ -133,13 +139,13 @@ public class InquiryService {
      */
     
     @Transactional
-    public Inquiry assignInquiry(Long inquiryId, Long userId) {
+    public Inquiry assignInquiry(Long inquiryId, Long employeeId) {
         Optional<Inquiry> inquiryOpt = inquiryRepository.findById(inquiryId);
-        Optional<User> userOpt = userRepository.findById(userId);
+        Optional<Employee> employeeOpt = employeeRepository.findById(employeeId);
         
-        if (inquiryOpt.isPresent() && userOpt.isPresent()) {
+        if (inquiryOpt.isPresent() && employeeOpt.isPresent()) {
             Inquiry inquiry = inquiryOpt.get();
-            inquiry.setAssignedTo(userOpt.get());
+            inquiry.setAssignedEmployee(employeeOpt.get());
             inquiry.setStatus("ASSIGNED");
             return inquiryRepository.save(inquiry);
         }

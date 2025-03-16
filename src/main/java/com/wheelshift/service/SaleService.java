@@ -1,8 +1,12 @@
 package com.wheelshift.service;
 
 import com.wheelshift.model.Car;
+import com.wheelshift.model.Client;
+import com.wheelshift.model.Employee;
 import com.wheelshift.model.Sale;
 import com.wheelshift.repository.CarRepository;
+import com.wheelshift.repository.ClientRepository;
+import com.wheelshift.repository.EmployeeRepository;
 import com.wheelshift.repository.SaleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -22,21 +27,26 @@ public class SaleService {
 
     private final SaleRepository saleRepository;
     private final CarRepository carRepository;
+    private final ClientRepository clientRepository;
+    private final EmployeeRepository employeeRepository;
 
-    public SaleService(SaleRepository saleRepository, CarRepository carRepository) {
+    public SaleService(SaleRepository saleRepository, CarRepository carRepository,
+                       ClientRepository clientRepository, EmployeeRepository employeeRepository) {
         this.saleRepository = saleRepository;
         this.carRepository = carRepository;
+        this.clientRepository = clientRepository;
+        this.employeeRepository = employeeRepository;
     }
     
     /**
-	 *	   _____ _____  _    _ _____  
-	 *	  / ____|  __ \| |  | |  __ \ 
-	 *	 | |    | |__) | |  | | |  | |
-	 *	 | |    |  _  /| |  | | |  | |
-	 *	 | |____| | \ \| |__| | |__| |
-	 *	  \_____|_|  \_\\____/|_____/ 
-	 *	                                                   
-     *				CRUD OPERATIONS
+     *     _____ _____  _    _ _____  
+     *    / ____|  __ \| |  | |  __ \ 
+     *   | |    | |__) | |  | | |  | |
+     *   | |    |  _  /| |  | | |  | |
+     *   | |____| | \ \| |__| | |__| |
+     *    \_____|_|  \_\\____/|_____/ 
+     *                                                   
+     *              CRUD OPERATIONS
      */
     
     public Optional<Sale> getSaleById(Long id) {
@@ -53,20 +63,34 @@ public class SaleService {
         Car car = carRepository.findById(sale.getCar().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + sale.getCar().getId()));
         
-        if (saleRepository.findByCarId(car.getId()) != null) {
+        if (car.getSale() != null) {
             throw new IllegalStateException("Car is already sold");
         }
+        
+        // Validate client exists
+        Client client = clientRepository.findById(sale.getClient().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Client not found with ID: " + sale.getClient().getId()));
+        
+        // Validate employee exists
+        @SuppressWarnings("unused")
+		Employee employee = employeeRepository.findById(sale.getHandledBy().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found with ID: " + sale.getHandledBy().getId()));
         
         // Calculate commission if not set
         if (sale.getCommissionRate() != null && sale.getTotalCommission() == null) {
             BigDecimal commissionAmount = sale.getSalePrice()
-                    .multiply(sale.getCommissionRate().divide(new BigDecimal("100")));
+                    .multiply(sale.getCommissionRate().divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP));
             sale.setTotalCommission(commissionAmount);
         }
         
         // Update car status to sold
         car.setCurrentStatus("SOLD");
         carRepository.save(car);
+        
+        // Update client's purchase information
+        client.setTotalPurchases(client.getTotalPurchases() + 1);
+        client.setLastPurchase(sale.getSaleDate());
+        clientRepository.save(client);
         
         return saleRepository.save(sale);
     }
@@ -76,17 +100,46 @@ public class SaleService {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Sale not found with ID: " + id));
         
-        sale.setBuyerName(saleDetails.getBuyerName());
-        sale.setBuyerContact(saleDetails.getBuyerContact());
+        // Update sale price and payment method
         sale.setSalePrice(saleDetails.getSalePrice());
         sale.setPaymentMethod(saleDetails.getPaymentMethod());
         sale.setSaleDocumentsUrl(saleDetails.getSaleDocumentsUrl());
+        
+        // Optionally update sale date
+        if (saleDetails.getSaleDate() != null) {
+            sale.setSaleDate(saleDetails.getSaleDate());
+        }
+        
+        // Update client if changed
+        if (saleDetails.getClient() != null && !saleDetails.getClient().getId().equals(sale.getClient().getId())) {
+            Client newClient = clientRepository.findById(saleDetails.getClient().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Client not found with ID: " + saleDetails.getClient().getId()));
+            
+            // Update old client's purchase information
+            Client oldClient = sale.getClient();
+            oldClient.setTotalPurchases(oldClient.getTotalPurchases() - 1);
+            clientRepository.save(oldClient);
+            
+            // Update new client's purchase information
+            newClient.setTotalPurchases(newClient.getTotalPurchases() + 1);
+            newClient.setLastPurchase(sale.getSaleDate());
+            clientRepository.save(newClient);
+            
+            sale.setClient(newClient);
+        }
+        
+        // Update employee if changed
+        if (saleDetails.getHandledBy() != null && !saleDetails.getHandledBy().getId().equals(sale.getHandledBy().getId())) {
+            Employee newEmployee = employeeRepository.findById(saleDetails.getHandledBy().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Employee not found with ID: " + saleDetails.getHandledBy().getId()));
+            sale.setHandledBy(newEmployee);
+        }
         
         // Recalculate commission if needed
         if (saleDetails.getCommissionRate() != null) {
             sale.setCommissionRate(saleDetails.getCommissionRate());
             BigDecimal commissionAmount = sale.getSalePrice()
-                    .multiply(sale.getCommissionRate().divide(new BigDecimal("100")));
+                    .multiply(sale.getCommissionRate().divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP));
             sale.setTotalCommission(commissionAmount);
         }
         
@@ -103,18 +156,31 @@ public class SaleService {
         car.setCurrentStatus("AVAILABLE");
         carRepository.save(car);
         
+        // Update client's purchase information
+        Client client = sale.getClient();
+        client.setTotalPurchases(client.getTotalPurchases() - 1);
+        
+        // Update last purchase date if needed
+        if (client.getLastPurchase() != null && client.getLastPurchase().equals(sale.getSaleDate())) {
+            // Find the next most recent purchase
+            Optional<Sale> latestSale = saleRepository.findTopByClientIdAndIdNotOrderBySaleDateDesc(client.getId(), id);
+            client.setLastPurchase(latestSale.map(Sale::getSaleDate).orElse(null));
+        }
+        
+        clientRepository.save(client);
+        
         saleRepository.delete(sale);
     }
     
     /**
-	 *	   _____ ______          _____   _____ _    _ 
-	 *	  / ____|  ____|   /\   |  __ \ / ____| |  | |
-	 *	 | (___ | |__     /  \  | |__) | |    | |__| |
-	 *	  \___ \|  __|   / /\ \ |  _  /| |    |  __  |
-	 *	  ____) | |____ / ____ \| | \ \| |____| |  | |
-	 *	 |_____/|______/_/    \_\_|  \_\\_____|_|  |_|
-	 *	                                              
-	 *				SEARCH & FILTERS OPERATIONS
+     *     _____ ______          _____   _____ _    _ 
+     *    / ____|  ____|   /\   |  __ \ / ____| |  | |
+     *   | (___ | |__     /  \  | |__) | |    | |__| |
+     *    \___ \|  __|   / /\ \ |  _  /| |    |  __  |
+     *    ____) | |____ / ____ \| | \ \| |____| |  | |
+     *   |_____/|______/_/    \_\_|  \_\\_____|_|  |_|
+     *                                              
+     *              SEARCH & FILTERS OPERATIONS
      */
 
     public Page<Sale> getAllSalesPaginated(Pageable pageable) {
@@ -125,8 +191,12 @@ public class SaleService {
         return saleRepository.findBySaleDateBetween(startDate, endDate);
     }
     
-    public List<Sale> findSalesByBuyerName(String buyerName) {
-        return saleRepository.findByBuyerNameContainingIgnoreCase(buyerName);
+    public List<Sale> findSalesByClient(Long clientId) {
+        return saleRepository.findByClientId(clientId);
+    }
+    
+    public List<Sale> findSalesByEmployee(Long employeeId) {
+        return saleRepository.findByHandledById(employeeId);
     }
 
     public List<Sale> findSalesByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
@@ -138,14 +208,14 @@ public class SaleService {
     }
     
     /**
-     *  	____ _______    _______ _____ 
-	 *	  / ____|__   __|/\|__   __/ ____|
-	 *	 | (___    | |  /  \  | | | (___  
-	 *	  \___ \   | | / /\ \ | |  \___ \ 
-	 *	  ____) |  | |/ ____ \| |  ____) |
-	 *	 |_____/   |_/_/    \_\_| |_____/ 
-	 *
-	 *				STATISTICS AND ANALYTICS
+     *     ____ _______    _______ _____ 
+     *    / ____|__   __|/\|__   __/ ____|
+     *   | (___    | |  /  \  | | | (___  
+     *    \___ \   | | / /\ \ | |  \___ \ 
+     *    ____) |  | |/ ____ \| |  ____) |
+     *   |_____/   |_/_/    \_\_| |_____/ 
+     *
+     *              STATISTICS AND ANALYTICS
      */
 
     public BigDecimal calculateTotalSalesAmount(LocalDate startDate, LocalDate endDate) {
@@ -183,8 +253,7 @@ public class SaleService {
         }).toList();
     }
     
-    @SuppressWarnings("deprecation")
-	public BigDecimal calculateAverageSalePrice() {
+    public BigDecimal calculateAverageSalePrice() {
         List<Sale> sales = saleRepository.findAll();
         if (sales.isEmpty()) {
             return BigDecimal.ZERO;
@@ -194,11 +263,10 @@ public class SaleService {
                 .map(Sale::getSalePrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                 
-        return total.divide(new BigDecimal(sales.size()), BigDecimal.ROUND_HALF_UP);
+        return total.divide(new BigDecimal(sales.size()), 2, RoundingMode.HALF_UP);
     }
     
-    @SuppressWarnings("deprecation")
-	public Map<String, BigDecimal> calculateProfitMargin(LocalDate startDate, LocalDate endDate) {
+    public Map<String, BigDecimal> calculateProfitMargin(LocalDate startDate, LocalDate endDate) {
         List<Sale> sales = saleRepository.findBySaleDateBetween(startDate, endDate);
         
         BigDecimal totalRevenue = BigDecimal.ZERO;
@@ -206,14 +274,15 @@ public class SaleService {
         
         for (Sale sale : sales) {
             totalRevenue = totalRevenue.add(sale.getSalePrice());
-            totalCost = totalCost.add(sale.getCar().getPurchasePrice());
+            totalCost = totalCost.add(sale.getCar().getPurchasePrice() != null ? 
+                    sale.getCar().getPurchasePrice() : BigDecimal.ZERO);
         }
         
         BigDecimal profit = totalRevenue.subtract(totalCost);
         BigDecimal profitMargin = BigDecimal.ZERO;
         
         if (totalRevenue.compareTo(BigDecimal.ZERO) > 0) {
-            profitMargin = profit.divide(totalRevenue, 4, BigDecimal.ROUND_HALF_UP)
+            profitMargin = profit.divide(totalRevenue, 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
         }
         
@@ -239,5 +308,31 @@ public class SaleService {
         }
         
         return yearlyPerformance;
+    }
+    
+    public Map<Long, Integer> getTopSalespersons(int limit) {
+        List<Object[]> results = saleRepository.findTopSellingEmployees(PageRequest.of(0, limit));
+        Map<Long, Integer> topSalespersons = new HashMap<>();
+        
+        for (Object[] result : results) {
+            Long employeeId = (Long) result[0];
+            Integer salesCount = ((Number) result[1]).intValue();
+            topSalespersons.put(employeeId, salesCount);
+        }
+        
+        return topSalespersons;
+    }
+    
+    public Map<Long, BigDecimal> getTopClients(int limit) {
+        List<Object[]> results = saleRepository.findTopClients(PageRequest.of(0, limit));
+        Map<Long, BigDecimal> topClients = new HashMap<>();
+        
+        for (Object[] result : results) {
+            Long clientId = (Long) result[0];
+            BigDecimal totalSpent = (BigDecimal) result[1];
+            topClients.put(clientId, totalSpent);
+        }
+        
+        return topClients;
     }
 }

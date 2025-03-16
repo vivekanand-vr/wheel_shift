@@ -89,19 +89,24 @@ public class ReservationController {
         return ResponseEntity.ok(reservationService.getReservationsByStatus(status));
     }
     
+    @GetMapping("/client/{clientId}")
+    public ResponseEntity<List<Reservation>> getReservationsByClient(@PathVariable Long clientId){
+    	return ResponseEntity.ok(reservationService.getReservationsByClient(clientId));
+    }
+    
     @GetMapping("/deposit-status")
     public ResponseEntity<List<Reservation>> getReservationsByDepositStatus(@RequestParam Boolean depositPaid) {
         return ResponseEntity.ok(reservationService.getReservationsByDepositStatus(depositPaid));
     }
     
     @GetMapping("/email/{email}")
-    public ResponseEntity<List<Reservation>> getReservationsByCustomerEmail(@PathVariable String email) {
-        return ResponseEntity.ok(reservationService.getReservationsByCustomerEmail(email));
+    public ResponseEntity<List<Reservation>> getReservationsByClientEmail(@PathVariable String email) {
+        return ResponseEntity.ok(reservationService.getReservationsByClientEmail(email));
     }
     
-    @GetMapping("/customer/{name}")
-    public ResponseEntity<List<Reservation>> getReservationsByCustomerName(@PathVariable String name) {
-        return ResponseEntity.ok(reservationService.getReservationsByCustomerName(name));
+    @GetMapping("/client/{name}")
+    public ResponseEntity<List<Reservation>> getReservationsByClientName(@PathVariable String name) {
+        return ResponseEntity.ok(reservationService.getReservationsByClientName(name));
     }
     
     @GetMapping("/date-range")

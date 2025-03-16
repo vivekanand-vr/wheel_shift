@@ -86,19 +86,24 @@ public class InquiryController {
         return ResponseEntity.ok(inquiryService.getInquiriesByStatus(status));
     }
     
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Inquiry>> getInquiriesByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(inquiryService.getInquiriesByUser(userId));
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<List<Inquiry>> getInquiriesByEmployee(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(inquiryService.getInquiriesByEmployee(employeeId));
+    }
+    
+    @GetMapping("/client/{clientId}")
+    public ResponseEntity<List<Inquiry>> getInquiriesByClient(@PathVariable Long clientId) {
+        return ResponseEntity.ok(inquiryService.getInquiriesByClient(clientId));
     }
     
     @GetMapping("/email/{email}")
-    public ResponseEntity<List<Inquiry>> getInquiriesByCustomerEmail(@PathVariable String email) {
-        return ResponseEntity.ok(inquiryService.getInquiriesByCustomerEmail(email));
+    public ResponseEntity<List<Inquiry>> getInquiriesByClientEmail(@PathVariable String email) {
+        return ResponseEntity.ok(inquiryService.getInquiriesByClientEmail(email));
     }
     
-    @GetMapping("/customer/{name}")
+    @GetMapping("/client/{name}")
     public ResponseEntity<List<Inquiry>> getInquiriesByCustomerName(@PathVariable String name) {
-        return ResponseEntity.ok(inquiryService.getInquiriesByCustomerName(name));
+        return ResponseEntity.ok(inquiryService.getInquiriesByClientName(name));
     }
     
     @GetMapping("/type/{inquiryType}")

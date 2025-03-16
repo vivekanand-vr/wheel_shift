@@ -7,6 +7,7 @@ import com.wheelshift.service.FinancialTransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -43,7 +44,11 @@ public class FinancialTransactionController {
     }
 
     @GetMapping("/paged")
-    public ResponseEntity<Page<FinancialTransaction>> getAllTransactionsPaged(Pageable pageable) {
+    public ResponseEntity<Page<FinancialTransaction>> getAllTransactionsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(transactionService.getAllTransactions(pageable));
     }
 

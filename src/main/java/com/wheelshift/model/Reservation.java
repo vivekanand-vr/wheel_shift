@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.math.BigDecimal;
@@ -13,7 +12,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "reservations", indexes = {
     @Index(name = "idx_reservation_status", columnList = "status"),
-    @Index(name = "idx_reservation_car", columnList = "car_id")
+    @Index(name = "idx_reservation_car", columnList = "car_id"),
+    @Index(name = "idx_reservation_client", columnList = "client_id"),
+    @Index(name = "idx_reservation_expiry_date", columnList = "expiry_date"),
+    @Index(name = "idx_reservation_deposit_paid", columnList = "deposit_paid")
 })
 @Data
 public class Reservation {
@@ -27,14 +29,10 @@ public class Reservation {
     @JsonBackReference("car-reservation")
     private Car car;
     
-    @Column(nullable = false)
-    private String customerName;
-    
-    @Column(nullable = false)
-    private String customerEmail;
-    
-    @Column(nullable = false)
-    private String customerPhone;
+    @ManyToOne
+    @JoinColumn(name = "client_id", nullable = false)
+    @JsonBackReference("client-reservations")
+    private Client client;
     
     @Column(nullable = false)
     private LocalDateTime reservationDate;
@@ -42,6 +40,7 @@ public class Reservation {
     @Column(nullable = false)
     private LocalDateTime expiryDate;
     
+    @Column(nullable = false)
     private String status;
     
     private BigDecimal depositAmount;

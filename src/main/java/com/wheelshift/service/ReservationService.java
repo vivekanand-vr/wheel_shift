@@ -1,8 +1,10 @@
 package com.wheelshift.service;
 
 import com.wheelshift.model.Car;
+import com.wheelshift.model.Client;
 import com.wheelshift.model.Reservation;
 import com.wheelshift.repository.CarRepository;
+import com.wheelshift.repository.ClientRepository;
 import com.wheelshift.repository.ReservationRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,16 +26,17 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final CarRepository carRepository;
+    private final ClientRepository clientRepository;
     
     /**
-	 *	   _____ _____  _    _ _____  
-	 *	  / ____|  __ \| |  | |  __ \ 
-	 *	 | |    | |__) | |  | | |  | |
-	 *	 | |    |  _  /| |  | | |  | |
-	 *	 | |____| | \ \| |__| | |__| |
-	 *	  \_____|_|  \_\\____/|_____/ 
-	 *	                                                   
-     *				CRUD OPERATIONS
+     *     _____ _____  _    _ _____  
+     *    / ____|  __ \| |  | |  __ \ 
+     *   | |    | |__) | |  | | |  | |
+     *   | |    |  _  /| |  | | |  | |
+     *   | |____| | \ \| |__| | |__| |
+     *    \_____|_|  \_\\____/|_____/ 
+     *                                                   
+     *              CRUD OPERATIONS
      */
 
     public List<Reservation> getAllReservations() {
@@ -59,7 +62,7 @@ public class ReservationService {
             return reservationRepository.save(reservation);
         }
         
-        return null; // Car not available
+        return null; 
     }
     
     @Transactional
@@ -67,9 +70,7 @@ public class ReservationService {
         return reservationRepository.findById(id)
                 .map(reservation -> {
                     reservation.setCar(updatedReservation.getCar());
-                    reservation.setCustomerName(updatedReservation.getCustomerName());
-                    reservation.setCustomerEmail(updatedReservation.getCustomerEmail());
-                    reservation.setCustomerPhone(updatedReservation.getCustomerPhone());
+                    reservation.setClient(updatedReservation.getClient());
                     reservation.setReservationDate(updatedReservation.getReservationDate());
                     reservation.setExpiryDate(updatedReservation.getExpiryDate());
                     reservation.setStatus(updatedReservation.getStatus());
@@ -84,18 +85,27 @@ public class ReservationService {
     
     @Transactional
     public void deleteReservation(Long id) {
-        reservationRepository.deleteById(id);
+        reservationRepository.findById(id).ifPresent(reservation -> {
+            // Update car status back to available if the reservation was active
+            if ("ACTIVE".equals(reservation.getStatus())) {
+                Car car = reservation.getCar();
+                car.setCurrentStatus("AVAILABLE");
+                carRepository.save(car);
+            }
+            
+            reservationRepository.deleteById(id);
+        });
     }
     
     /**
-	 *	   _____ ______          _____   _____ _    _ 
-	 *	  / ____|  ____|   /\   |  __ \ / ____| |  | |
-	 *	 | (___ | |__     /  \  | |__) | |    | |__| |
-	 *	  \___ \|  __|   / /\ \ |  _  /| |    |  __  |
-	 *	  ____) | |____ / ____ \| | \ \| |____| |  | |
-	 *	 |_____/|______/_/    \_\_|  \_\\_____|_|  |_|
-	 *	                                              
-	 *				SEARCH & FILTERS OPERATIONS
+     *     _____ ______          _____   _____ _    _ 
+     *    / ____|  ____|   /\   |  __ \ / ____| |  | |
+     *   | (___ | |__     /  \  | |__) | |    | |__| |
+     *    \___ \|  __|   / /\ \ |  _  /| |    |  __  |
+     *    ____) | |____ / ____ \| | \ \| |____| |  | |
+     *   |_____/|______/_/    \_\_|  \_\\_____|_|  |_|
+     *                                              
+     *              SEARCH & FILTERS OPERATIONS
      */
     
     public List<Reservation> getReservationsByCar(Long carId) {
@@ -111,12 +121,17 @@ public class ReservationService {
         return reservationRepository.findByDepositPaid(depositPaid);
     }
     
-    public List<Reservation> getReservationsByCustomerEmail(String email) {
-        return reservationRepository.findByCustomerEmailContainingIgnoreCase(email);
+    public List<Reservation> getReservationsByClient(Long clientId) {
+        Optional<Client> client = clientRepository.findById(clientId);
+        return client.map(reservationRepository::findByClient).orElse(List.of());
     }
     
-    public List<Reservation> getReservationsByCustomerName(String name) {
-        return reservationRepository.findByCustomerNameContainingIgnoreCase(name);
+    public List<Reservation> getReservationsByClientEmail(String email) {
+        return reservationRepository.findByClientEmailContainingIgnoreCase(email);
+    }
+    
+    public List<Reservation> getReservationsByClientName(String name) {
+        return reservationRepository.findByClientNameContainingIgnoreCase(name);
     }
     
     public List<Reservation> getReservationsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
@@ -124,14 +139,14 @@ public class ReservationService {
     } 
     
     /**
-	 *	  ____  _    _  _____ _____ _   _ ______  _____ _____   _      ____   _____ _____ _____ 
-	 *	 |  _ \| |  | |/ ____|_   _| \ | |  ____|/ ____/ ____| | |    / __ \ / ____|_   _/ ____|
-	 *	 | |_) | |  | | (___   | | |  \| | |__  | (___| (___   | |   | |  | | |  __  | || |     
-	 *	 |  _ <| |  | |\___ \  | | | . ` |  __|  \___ \\___ \  | |   | |  | | | |_ | | || |     
-	 *	 | |_) | |__| |____) |_| |_| |\  | |____ ____) |___) | | |___| |__| | |__| |_| || |____ 
-	 * 	 |____/ \____/|_____/|_____|_| \_|______|_____/_____/  |______\____/ \_____|_____\_____|
+     *    ____  _    _  _____ _____ _   _ ______  _____ _____   _      ____   _____ _____ _____ 
+     *   |  _ \| |  | |/ ____|_   _| \ | |  ____|/ ____/ ____| | |    / __ \ / ____|_   _/ ____|
+     *   | |_) | |  | | (___   | | |  \| | |__  | (___| (___   | |   | |  | | |  __  | || |     
+     *   |  _ <| |  | |\___ \  | | | . ` |  __|  \___ \\___ \  | |   | |  | | | |_ | | || |     
+     *   | |_) | |__| |____) |_| |_| |\  | |____ ____) |___) | | |___| |__| | |__| |_| || |____ 
+     *   |____/ \____/|_____/|_____|_| \_|______|_____/_____/  |______\____/ \_____|_____\_____|
      *                                                                                   
-     *				BUSINESS LOGIC & TRANSACTIONS                                                                                   
+     *              BUSINESS LOGIC & TRANSACTIONS                                                                                   
      */
     
     @Transactional
@@ -174,12 +189,11 @@ public class ReservationService {
                 .orElse(null);
     }
     
-   
-    
     @Scheduled(cron = "0 0 0 * * ?") // Run daily at midnight
     @Transactional
     public void updateExpiredReservations() {
-        List<Reservation> expiredReservations = reservationRepository.findExpiredReservations();
+        LocalDateTime now = LocalDateTime.now();
+        List<Reservation> expiredReservations = reservationRepository.findByStatusAndExpiryDateBefore("ACTIVE", now);
         
         for (Reservation reservation : expiredReservations) {
             reservation.setStatus("EXPIRED");
@@ -194,14 +208,14 @@ public class ReservationService {
     }
     
     /**
-     *  	____ _______    _______ _____ 
-	 *	  / ____|__   __|/\|__   __/ ____|
-	 *	 | (___    | |  /  \  | | | (___  
-	 *	  \___ \   | | / /\ \ | |  \___ \ 
-	 *	  ____) |  | |/ ____ \| |  ____) |
-	 *	 |_____/   |_/_/    \_\_| |_____/ 
-	 *
-	 *				STATISTICS AND ANALYTICS
+     *      ____ _______    _______ _____ 
+     *    / ____|__   __|/\|__   __/ ____|
+     *   | (___    | |  /  \  | | | (___  
+     *    \___ \   | | / /\ \ | |  \___ \ 
+     *    ____) |  | |/ ____ \| |  ____) |
+     *   |_____/   |_/_/    \_\_| |_____/ 
+     *
+     *              STATISTICS AND ANALYTICS
      */
     
     public Map<String, Object> getReservationStatistics() {
@@ -237,30 +251,27 @@ public class ReservationService {
     }
     
     public List<Reservation> getActiveReservationsByCar(Long carId) {
-        return reservationRepository.findActiveReservationsByCar(carId);
+        return reservationRepository.findByCarIdAndStatus(carId, "ACTIVE");
     }
 
     public List<Reservation> getExpiringReservations(int daysToExpiry) {
         LocalDateTime cutoffDate = LocalDateTime.now().plusDays(daysToExpiry);
-        return reservationRepository.findAll().stream()
-                .filter(r -> "ACTIVE".equals(r.getStatus()))
-                .filter(r -> r.getExpiryDate().isBefore(cutoffDate))
-                .collect(Collectors.toList());
+        return reservationRepository.findByStatusAndExpiryDateBefore("ACTIVE", cutoffDate);
     }
     
     /**
      *    _    _ ______ _      _____  ______ _____  
-	 *	 | |  | |  ____| |    |  __ \|  ____|  __ \ 
-	 *	 | |__| | |__  | |    | |__) | |__  | |__) |
-	 *	 |  __  |  __| | |    |  ___/|  __| |  _  / 
-	 *	 | |  | | |____| |____| |    | |____| | \ \ 
-	 *	 |_|  |_|______|______|_|    |______|_|  \_\
-     *				
-     *				HELPER FUNCTIONS                         
+     *   | |  | |  ____| |    |  __ \|  ____|  __ \ 
+     *   | |__| | |__  | |    | |__) | |__  | |__) |
+     *   |  __  |  __| | |    |  ___/|  __| |  _  / 
+     *   | |  | | |____| |____| |    | |____| | \ \ 
+     *   |_|  |_|______|______|_|    |______|_|  \_\
+     *              
+     *              HELPER FUNCTIONS                         
      */
     
     private boolean isCarAvailable(Long carId) {
-        List<Reservation> activeReservations = reservationRepository.findActiveReservationsByCar(carId);
+        List<Reservation> activeReservations = reservationRepository.findByCarIdAndStatus(carId, "ACTIVE");
         
         // Check if car is already reserved
         if (!activeReservations.isEmpty()) {

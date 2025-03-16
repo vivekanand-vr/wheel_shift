@@ -2,6 +2,9 @@ package com.wheelshift.controller;
 
 import com.wheelshift.model.Sale;
 import com.wheelshift.service.SaleService;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -88,6 +91,11 @@ public class SaleController {
    	 *				SEARCH & FILTERS OPERATIONS
      */ 
     
+    @GetMapping("/paged")
+    public ResponseEntity<Page<Sale>> getAllSalesPaginated(Pageable pageable){
+    	return ResponseEntity.ok(saleService.getAllSalesPaginated(pageable));
+    }
+    
     @GetMapping("/search/date-range")
     public ResponseEntity<List<Sale>> getSalesByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -96,9 +104,15 @@ public class SaleController {
         return ResponseEntity.ok(sales);
     }
 
-    @GetMapping("/search/buyer")
-    public ResponseEntity<List<Sale>> getSalesByBuyerName(@RequestParam String buyerName) {
-        List<Sale> sales = saleService.findSalesByBuyerName(buyerName);
+    @GetMapping("/search/client")
+    public ResponseEntity<List<Sale>> getSalesByClient(@RequestParam Long clientId) {
+        List<Sale> sales = saleService.findSalesByClient(clientId);
+        return ResponseEntity.ok(sales);
+    }
+    
+    @GetMapping("/search/employee")
+    public ResponseEntity<List<Sale>> getSalesByEmployee(@RequestParam Long employeeId) {
+        List<Sale> sales = saleService.findSalesByEmployee(employeeId);
         return ResponseEntity.ok(sales);
     }
 
@@ -174,5 +188,17 @@ public class SaleController {
     public ResponseEntity<Map<Integer, BigDecimal>> getYearlySalesPerformance() {
         Map<Integer, BigDecimal> yearlyPerformance = saleService.getYearlySalesPerformance();
         return ResponseEntity.ok(yearlyPerformance);
+    }
+    
+    @GetMapping("/statistics/top-sales-persons")
+    public ResponseEntity<Map<Long, Integer>> getTopSalespersons(int limit) {
+        Map<Long,Integer> results = saleService.getTopSalespersons(limit);
+        return ResponseEntity.ok(results);
+    }
+    
+    @GetMapping("/statistics/top-clients")
+    public ResponseEntity<Map<Long, BigDecimal>> getTopClients(int limit) {
+        Map<Long, BigDecimal> results = saleService.getTopClients(limit);
+        return ResponseEntity.ok(results);
     }
 }

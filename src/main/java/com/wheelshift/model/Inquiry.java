@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.time.LocalDateTime;
@@ -12,7 +11,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "inquiries", indexes = {
     @Index(name = "idx_inquiry_status", columnList = "status"),
-    @Index(name = "idx_inquiry_car", columnList = "car_id")
+    @Index(name = "idx_inquiry_car", columnList = "car_id"),
+    @Index(name = "idx_inquiry_client", columnList = "client_id"),
+    @Index(name = "idx_inquiry_employee", columnList = "assigned_employee_id"),
+    @Index(name = "idx_inquiry_created_at", columnList = "created_at")
 })
 @Data
 public class Inquiry {
@@ -26,14 +28,15 @@ public class Inquiry {
     @JsonBackReference("car-inquiries")
     private Car car;
     
-    @Column(nullable = false)
-    private String customerName;
+    @ManyToOne
+    @JoinColumn(name = "client_id", nullable = false)
+    @JsonBackReference("client-inquiries")
+    private Client client;
     
-    @Column(nullable = false)
-    private String customerEmail;
-    
-    @Column(nullable = false)
-    private String customerPhone;
+    @ManyToOne
+    @JoinColumn(name = "assigned_employee_id")
+    @JsonBackReference("employee-inquiries")
+    private Employee assignedEmployee;
     
     @Column(nullable = false)
     private String inquiryType;
@@ -41,11 +44,8 @@ public class Inquiry {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
     
+    @Column(nullable = false)
     private String status;
-    
-    @ManyToOne
-    @JoinColumn(name = "assigned_to")
-    private User assignedTo;
     
     @Column(columnDefinition = "TEXT")
     private String response;

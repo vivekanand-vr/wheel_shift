@@ -11,7 +11,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sales")
+@Table(name = "sales", indexes = {
+    @Index(name = "idx_sale_car", columnList = "car_id"),
+    @Index(name = "idx_sale_client", columnList = "client_id"),
+    @Index(name = "idx_sale_employee", columnList = "handled_by_id"),
+    @Index(name = "idx_sale_date", columnList = "sale_date"),
+    @Index(name = "idx_sale_payment_method", columnList = "payment_method")
+})
 @Data
 public class Sale {
     
@@ -24,12 +30,18 @@ public class Sale {
     @JsonBackReference("car-sale")
     private Car car;
     
+    @ManyToOne
+    @JoinColumn(name = "client_id", nullable = false)
+    @JsonBackReference("client-sales")
+    private Client client;
+    
+    @ManyToOne
+    @JoinColumn(name = "handled_by_id", nullable = false)
+    @JsonBackReference("employee-sales")
+    private Employee handledBy;
+    
     @Column(nullable = false)
     private LocalDate saleDate;
-    
-    private String buyerName;
-    
-    private String buyerContact;
     
     @Column(nullable = false)
     private BigDecimal salePrice;

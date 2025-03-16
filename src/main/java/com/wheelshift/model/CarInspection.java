@@ -3,7 +3,6 @@ package com.wheelshift.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.math.BigDecimal;
@@ -11,7 +10,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "car_inspections")
+@Table(name = "car_inspections", indexes = {
+    @Index(name = "idx_inspection_car", columnList = "car_id"),
+    @Index(name = "idx_inspection_date", columnList = "inspectionDate"),
+    @Index(name = "idx_inspection_pass", columnList = "inspectionPass")
+})
 @Data
 public class CarInspection {
     

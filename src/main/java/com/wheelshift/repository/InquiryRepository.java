@@ -1,8 +1,9 @@
 package com.wheelshift.repository;
 
 import com.wheelshift.model.Car;
+import com.wheelshift.model.Client;
+import com.wheelshift.model.Employee;
 import com.wheelshift.model.Inquiry;
-import com.wheelshift.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -17,11 +18,13 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     
     List<Inquiry> findByStatus(String status);
     
-    List<Inquiry> findByAssignedTo(User user);
+    List<Inquiry> findByAssignedEmployee(Employee employee);
     
-    List<Inquiry> findByCustomerEmailContainingIgnoreCase(String email);
+    List<Inquiry> findByClient(Client client);
     
-    List<Inquiry> findByCustomerNameContainingIgnoreCase(String name);
+    List<Inquiry> findByClientEmailContainingIgnoreCase(String email);
+    
+    List<Inquiry> findByClientNameContainingIgnoreCase(String name);
     
     List<Inquiry> findByInquiryType(String inquiryType);
     

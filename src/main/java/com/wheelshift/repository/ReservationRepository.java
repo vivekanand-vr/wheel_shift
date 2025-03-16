@@ -1,6 +1,7 @@
 package com.wheelshift.repository;
 
 import com.wheelshift.model.Car;
+import com.wheelshift.model.Client;
 import com.wheelshift.model.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,13 +19,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     
     List<Reservation> findByDepositPaid(Boolean depositPaid);
     
-    List<Reservation> findByCustomerEmailContainingIgnoreCase(String email);
+    List<Reservation> findByClient(Client client);
     
-    List<Reservation> findByCustomerNameContainingIgnoreCase(String name);
+    List<Reservation> findByClientEmailContainingIgnoreCase(String email);
+    
+    List<Reservation> findByClientNameContainingIgnoreCase(String name);
     
     List<Reservation> findByReservationDateBetween(LocalDateTime startDate, LocalDateTime endDate);
     
     List<Reservation> findByExpiryDateBefore(LocalDateTime date);
+    
+    List<Reservation> findByStatusAndExpiryDateBefore(String status, LocalDateTime cutoffDate);
+    
+    List<Reservation> findByCarIdAndStatus(Long carId, String status);
     
     @Query("SELECT r FROM Reservation r WHERE r.car.id = :carId AND r.status = 'ACTIVE'")
     List<Reservation> findActiveReservationsByCar(Long carId);
