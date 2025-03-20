@@ -5,10 +5,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.wheelshift.dto.ClientSearchCriteria;
 import com.wheelshift.model.Client;
 import com.wheelshift.repository.ClientRepository;
+import com.wheelshift.repository.spec.ClientSpecification;
+
 import jakarta.transaction.Transactional;
 
 @Service
@@ -40,6 +47,10 @@ public class ClientService {
         return clientRepository.findAll();
     }
     
+    public Page<Client> getAllClients(Pageable pageable){
+    	return clientRepository.findAll(pageable);
+    }
+    
     @Transactional
     public Client updateClient(Client client) {
         return clientRepository.save(client);
@@ -67,7 +78,13 @@ public class ClientService {
 
     public Optional<Client> getClientByEmail(String email) {
         return clientRepository.findByEmail(email);
-    }  
+    }
+    
+    @Transactional
+    public Page<Client> searchClients(ClientSearchCriteria criteria, Pageable pageable) {
+        Specification<Client> spec = buildSpecification(criteria);
+        return clientRepository.findAll(spec, pageable);
+    }
     
     /**
 	 *	  ____  _    _  _____ _____ _   _ ______  _____ _____   _      ____   _____ _____ _____ 
@@ -195,5 +212,54 @@ public class ClientService {
                 .map(Client::getLastPurchase)
                 .max(LocalDate::compareTo)
                 .orElse(null);
+    }
+    
+    /**
+     *    _    _ ______ _      _____  ______ _____  
+	 *	 | |  | |  ____| |    |  __ \|  ____|  __ \ 
+	 *	 | |__| | |__  | |    | |__) | |__  | |__) |
+	 *	 |  __  |  __| | |    |  ___/|  __| |  _  / 
+	 *	 | |  | | |____| |____| |    | |____| | \ \ 
+	 *	 |_|  |_|______|______|_|    |______|_|  \_\
+     *				
+     *				HELPER FUNCTIONS                         
+     */
+    
+    private Specification<Client> buildSpecification(ClientSearchCriteria criteria) {
+        Specification<Client> spec = Specification.where(null);
+        
+        if (criteria != null) {
+            if (criteria.getName() != null) {
+                spec = spec.and(ClientSpecification.hasName(criteria.getName()));
+            }
+            
+            if (criteria.getEmail() != null) {
+                spec = spec.and(ClientSpecification.hasEmail(criteria.getEmail()));
+            }
+            
+            if (criteria.getPhone() != null) {
+                spec = spec.and(ClientSpecification.hasPhone(criteria.getPhone()));
+            }
+            
+            if (criteria.getLocation() != null) {
+                spec = spec.and(ClientSpecification.hasLocation(criteria.getLocation()));
+            }
+            
+            if (criteria.getStatus() != null) {
+                spec = spec.and(ClientSpecification.hasStatus(criteria.getStatus()));
+            }
+            
+            spec = spec.and(ClientSpecification.hasTotalPurchasesBetween(
+                criteria.getMinTotalPurchases(), criteria.getMaxTotalPurchases()));
+                
+            spec = spec.and(ClientSpecification.hasLastPurchaseBetween(
+                criteria.getLastPurchaseFrom(), criteria.getLastPurchaseTo()));
+                
+            if (criteria.getSearchText() != null) {
+                spec = spec.and(ClientSpecification.containsText(criteria.getSearchText()));
+            }
+        }
+        
+        return spec;
     }
 }

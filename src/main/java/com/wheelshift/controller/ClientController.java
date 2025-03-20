@@ -1,9 +1,12 @@
 package com.wheelshift.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.wheelshift.dto.ClientSearchCriteria;
 import com.wheelshift.model.Client;
 import com.wheelshift.service.ClientService;
 
@@ -46,18 +49,15 @@ public class ClientController {
         return ResponseEntity.ok(clientService.getAllClients());
     }
     
-    @GetMapping("/{id}")
-    public ResponseEntity<Client> getClientById(@PathVariable Long id) {
-        Optional<Client> client = clientService.getClientById(id);
-        return client.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-    
-    @GetMapping("/email/{email}")
-    public ResponseEntity<Client> getClientByEmail(@PathVariable String email) {
-        Optional<Client> client = clientService.getClientByEmail(email);
-        return client.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    @GetMapping("/paged")
+    public ResponseEntity<Page<Client>> getAllClients(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<Client> clients = clientService.getAllClients(pageRequest);
+        return ResponseEntity.ok(clients);
     }
     
     @PutMapping("/{id}")
@@ -76,6 +76,41 @@ public class ClientController {
         }
         clientService.deleteClient(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    /**
+	 *	   _____ ______          _____   _____ _    _ 
+	 *	  / ____|  ____|   /\   |  __ \ / ____| |  | |
+	 *	 | (___ | |__     /  \  | |__) | |    | |__| |
+	 *	  \___ \|  __|   / /\ \ |  _  /| |    |  __  |
+	 *	  ____) | |____ / ____ \| | \ \| |____| |  | |
+	 *	 |_____/|______/_/    \_\_|  \_\\_____|_|  |_|
+	 *	                                              
+	 *				SEARCH & FILTERS OPERATIONS
+     */
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<Client> getClientById(@PathVariable Long id) {
+        Optional<Client> client = clientService.getClientById(id);
+        return client.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping("/email/{email}")
+    public ResponseEntity<Client> getClientByEmail(@PathVariable String email) {
+        Optional<Client> client = clientService.getClientByEmail(email);
+        return client.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping("/search")
+    public ResponseEntity<Page<Client>> searchClients(
+            ClientSearchCriteria criteria,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+    	PageRequest pageRequest = PageRequest.of(page, size);
+        Page<Client> clients = clientService.searchClients(criteria, pageRequest);
+        return ResponseEntity.ok(clients);
     }
     
     /**
