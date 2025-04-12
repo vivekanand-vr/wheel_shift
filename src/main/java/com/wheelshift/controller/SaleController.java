@@ -1,10 +1,14 @@
 package com.wheelshift.controller;
 
+import com.wheelshift.dto.SaleDTO;
 import com.wheelshift.model.Sale;
 import com.wheelshift.service.SaleService;
+import com.wheelshift.util.SaleMapper;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,35 +40,35 @@ public class SaleController {
    	 *	                                                   
      *				CRUD OPERATIONS
      */
-    
+
     @GetMapping("/{id}")
-    public ResponseEntity<Sale> getSaleById(@PathVariable Long id) {
+    public ResponseEntity<SaleDTO> getSaleById(@PathVariable Long id) {
         Optional<Sale> sale = saleService.getSaleById(id);
-        return sale.map(ResponseEntity::ok)
+        return sale.map(s -> ResponseEntity.ok(SaleMapper.toDTO(s)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<Sale>> getAllSales() {
+    public ResponseEntity<List<SaleDTO>> getAllSales() {
         List<Sale> sales = saleService.getAllSales();
-        return ResponseEntity.ok(sales);
+        return ResponseEntity.ok(SaleMapper.toDTOList(sales));
     }
 
     @PostMapping
-    public ResponseEntity<Sale> createSale(@RequestBody Sale sale) {
+    public ResponseEntity<SaleDTO> createSale(@RequestBody Sale sale) {
         try {
             Sale createdSale = saleService.createSale(sale);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdSale);
+            return ResponseEntity.status(HttpStatus.CREATED).body(SaleMapper.toDTO(createdSale));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Sale> updateSale(@PathVariable Long id, @RequestBody Sale saleDetails) {
+    public ResponseEntity<SaleDTO> updateSale(@PathVariable Long id, @RequestBody Sale saleDetails) {
         try {
             Sale updatedSale = saleService.updateSale(id, saleDetails);
-            return ResponseEntity.ok(updatedSale);
+            return ResponseEntity.ok(SaleMapper.toDTO(updatedSale));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -92,8 +96,50 @@ public class SaleController {
      */ 
     
     @GetMapping("/paged")
-    public ResponseEntity<Page<Sale>> getAllSalesPaginated(Pageable pageable){
-    	return ResponseEntity.ok(saleService.getAllSalesPaginated(pageable));
+    public ResponseEntity<Page<SaleDTO>> getAllSalesPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "saleDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+        
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("asc") ? 
+                Sort.Direction.ASC : Sort.Direction.DESC;
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+        Page<Sale> salesPage = saleService.getAllSalesPaginated(pageable);
+        
+        Page<SaleDTO> salesDtoPage = SaleMapper.toDTOPage(salesPage);
+        return ResponseEntity.ok(salesDtoPage);
+    }
+    
+    @GetMapping("/search")
+    public ResponseEntity<Page<SaleDTO>> searchSales(
+            @RequestParam(required = false) String searchTerm,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "saleDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+        
+        // This is a placeholder for a more comprehensive search implementation
+        // For now, just return paginated results
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("asc") ? 
+                Sort.Direction.ASC : Sort.Direction.DESC;
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+        Page<Sale> salesPage = saleService.getAllSalesPaginated(pageable);
+        
+        // In a real implementation, you would use the search parameters
+        // to filter the results before converting to DTOs
+        
+        Page<SaleDTO> salesDtoPage = SaleMapper.toDTOPage(salesPage);
+        return ResponseEntity.ok(salesDtoPage);
     }
     
     @GetMapping("/search/date-range")
