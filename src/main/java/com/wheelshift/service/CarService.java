@@ -377,7 +377,7 @@ public class CarService {
         return carRepository.searchCars(searchTerm, pageable);
     }
     
-    public Page<Car> searchCarsAdvanced(CarSearchCriteria criteria, Pageable pageable) {
+    public Page<Car> filterCars(CarSearchCriteria criteria, Pageable pageable) {
         log.debug("Searching cars with criteria: {}", criteria);
         
         // Create an empty specification
@@ -456,12 +456,6 @@ public class CarService {
                 Specification<Car> purchaseDateSpec = CarSpecification.purchasedBetween(criteria.getPurchaseDateFrom(), criteria.getPurchaseDateTo());
                 spec = spec.and(purchaseDateSpec);
                 log.debug("Added purchase date range filter: {} to {}", criteria.getPurchaseDateFrom(), criteria.getPurchaseDateTo());
-            }
-            
-            if (criteria.getSearchText() != null && !criteria.getSearchText().trim().isEmpty()) {
-                Specification<Car> textSpec = CarSpecification.containsText(criteria.getSearchText());
-                spec = spec.and(textSpec);
-                log.debug("Added text search filter: {}", criteria.getSearchText());
             }
             
             // Execute the query with the combined specification

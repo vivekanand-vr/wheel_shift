@@ -23,5 +23,4 @@ public class CarSearchCriteria {
     private Long locationId;
     private LocalDate purchaseDateFrom;
     private LocalDate purchaseDateTo;
-    private String searchText;
 }

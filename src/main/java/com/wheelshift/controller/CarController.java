@@ -142,13 +142,13 @@ public class CarController {
         return ResponseEntity.ok(carService.searchCars(searchTerm, pageable));
     }
 
-    @PostMapping("/search/advanced")
-    public ResponseEntity<Page<Car>> searchCarsAdvanced(
+    @PostMapping("/filter")
+    public ResponseEntity<Page<Car>> filterCars(
             @RequestBody CarSearchCriteria criteria, 
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size)  {
     	Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(carService.searchCarsAdvanced(criteria, pageable));
+        return ResponseEntity.ok(carService.filterCars(criteria, pageable));
     }
     
     @GetMapping("/vin/{vinNumber}")

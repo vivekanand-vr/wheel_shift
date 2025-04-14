@@ -180,25 +180,4 @@ public class CarSpecification {
             return cb.equal(root.get("storageLocation").get("id"), locationId);
         };
     }
-    
-    public static Specification<Car> containsText(String searchText) {
-        return (root, query, cb) -> {
-            if (searchText == null || searchText.trim().isEmpty()) {
-                return null;
-            }
-            
-            String likePattern = "%" + searchText.toLowerCase() + "%";
-            
-            Join<Car, CarModel> modelJoin = getCarModelJoin(root);
-            
-            return cb.or(
-                cb.like(cb.lower(root.get("vinNumber")), likePattern),
-                cb.like(cb.lower(root.get("registrationNumber")), likePattern),
-                cb.like(cb.lower(modelJoin.get("make")), likePattern),
-                cb.like(cb.lower(modelJoin.get("model")), likePattern),
-                cb.like(cb.lower(modelJoin.get("variant")), likePattern),
-                cb.like(cb.lower(root.get("color")), likePattern)
-            );
-        };
-    }
 }
