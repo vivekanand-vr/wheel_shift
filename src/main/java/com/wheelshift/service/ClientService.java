@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.wheelshift.dto.ClientIdNameDTO;
 import com.wheelshift.dto.ClientSearchCriteria;
 import com.wheelshift.model.Client;
 import com.wheelshift.repository.ClientRepository;
@@ -42,7 +43,11 @@ public class ClientService {
     public Client saveClient(Client client) {
         return clientRepository.save(client);
     }
-
+    
+    public List<ClientIdNameDTO> getAllClientIdsAndNames() {
+        return clientRepository.findAllClientIdAndName();
+    }
+    
     public List<Client> getAllClients() {
         return clientRepository.findAll();
     }

@@ -11,6 +11,8 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import com.wheelshift.dto.ClientIdNameDTO;
 import com.wheelshift.model.Client;
 
 @Repository
@@ -19,6 +21,9 @@ public interface ClientRepository extends JpaRepository<Client, Long>, JpaSpecif
     Optional<Client> findByEmail(String email);
     
     Page<Client> findAll(Pageable pageable);
+    
+    @Query("SELECT c.id AS id, c.name AS name FROM Client c")
+    List<ClientIdNameDTO> findAllClientIdAndName();
     
     List<Client> findByStatus(String status);
     

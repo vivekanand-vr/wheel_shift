@@ -3,6 +3,7 @@ package com.wheelshift.service;
 import com.wheelshift.model.Car;
 import com.wheelshift.model.Client;
 import com.wheelshift.model.Reservation;
+import com.wheelshift.projection.ReservationProjection;
 import com.wheelshift.repository.CarRepository;
 import com.wheelshift.repository.ClientRepository;
 import com.wheelshift.repository.ReservationRepository;
@@ -43,26 +44,66 @@ public class ReservationService {
         return reservationRepository.findAll();
     }
     
+    public List<Reservation> getAllReservationsWithDetails() {
+        return reservationRepository.findAllWithCarAndClient();
+    }
+    
     public Optional<Reservation> getReservationById(Long id) {
         return reservationRepository.findById(id);
     }
     
+    public Optional<Reservation> getReservationWithDetails(Long id) {
+        return reservationRepository.findByIdWithCarAndClient(id);
+    }
+    
+    // Methods for projection-based fetching
+    
+    public Optional<ReservationProjection> getReservationProjectionById(Long id) {
+        return reservationRepository.findProjectionByIdWithDetails(id);
+    }
+    
+    public List<ReservationProjection> getAllReservationProjections() {
+        return reservationRepository.findAllProjectionsWithDetails();
+    }
+    
+    public List<ReservationProjection> getReservationProjectionsByCarId(Long carId) {
+        return reservationRepository.findProjectionsByCarId(carId);
+    }
+    
+    public List<ReservationProjection> getReservationProjectionsByClientId(Long clientId) {
+        return reservationRepository.findProjectionsByClientId(clientId);
+    }
+    
+    public List<ReservationProjection> getReservationProjectionsByStatus(String status) {
+        return reservationRepository.findProjectionsByStatus(status);
+    }
+    
     @Transactional
-    public Reservation createReservation(Reservation reservation) {
-        // Check if car is available for reservation
-        if (isCarAvailable(reservation.getCar().getId())) {
-            // Set initial status
-            reservation.setStatus("ACTIVE");
+    public Reservation save(Reservation reservation) {
+        // Handle car and client references properly
+        if (reservation.getCar() != null && reservation.getCar().getId() != null) {
+            Car car = carRepository.findById(reservation.getCar().getId())
+                    .orElseThrow(() -> new RuntimeException("Car not found"));
+            reservation.setCar(car);
+            
+            boolean available = isCarAvailable(car.getId());
+            if(!available) {
+            	throw new RuntimeException("Car is already reserved");
+            }
             
             // Update car status
-            Car car = reservation.getCar();
-            car.setCurrentStatus("RESERVED");
+            car.setCurrentStatus("Reserved");
+            car.setReservation(reservation);
             carRepository.save(car);
-            
-            return reservationRepository.save(reservation);
         }
         
-        return null; 
+        if (reservation.getClient() != null && reservation.getClient().getId() != null) {
+            Client client = clientRepository.findById(reservation.getClient().getId())
+                    .orElseThrow(() -> new RuntimeException("Client not found"));
+            reservation.setClient(client);
+        }
+        
+        return reservationRepository.save(reservation);
     }
     
     @Transactional
@@ -90,6 +131,7 @@ public class ReservationService {
             if ("ACTIVE".equals(reservation.getStatus())) {
                 Car car = reservation.getCar();
                 car.setCurrentStatus("AVAILABLE");
+                car.setReservation(null);
                 carRepository.save(car);
             }
             

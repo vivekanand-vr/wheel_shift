@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.wheelshift.dto.ClientIdNameDTO;
 import com.wheelshift.dto.ClientSearchCriteria;
 import com.wheelshift.model.Client;
 import com.wheelshift.service.ClientService;
@@ -42,6 +43,12 @@ public class ClientController {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(clientService.saveClient(client));
+    }
+    
+    @GetMapping("/id-name")
+    public ResponseEntity<List<ClientIdNameDTO>> getClientIdsAndNames() {
+        List<ClientIdNameDTO> clients = clientService.getAllClientIdsAndNames();
+        return ResponseEntity.ok(clients);
     }
     
     @GetMapping

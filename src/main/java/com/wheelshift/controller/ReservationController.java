@@ -1,6 +1,7 @@
 package com.wheelshift.controller;
 
 import com.wheelshift.model.Reservation;
+import com.wheelshift.projection.ReservationProjection;
 import com.wheelshift.service.ReservationService;
 
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/reservations")
+@RequestMapping("/api/v1/reservations")
 @RequiredArgsConstructor
 public class ReservationController {
 
@@ -32,21 +33,65 @@ public class ReservationController {
      *				CRUD OPERATIONS
      */
     
-    @GetMapping
-    public ResponseEntity<List<Reservation>> getAllReservations() {
-        return ResponseEntity.ok(reservationService.getAllReservations());
+//    @GetMapping
+//    public ResponseEntity<List<Reservation>> getAllReservations() {
+//        return ResponseEntity.ok(reservationService.getAllReservations());
+//    }
+//    
+//    @GetMapping("/with-details")
+//    public ResponseEntity<List<Reservation>> getAllReservationsWithDetails() {
+//        return ResponseEntity.ok(reservationService.getAllReservationsWithDetails());
+//    }
+//    
+//    @GetMapping("/{id}")
+//    public ResponseEntity<Reservation> getReservationById(@PathVariable Long id) {
+//        return reservationService.getReservationById(id)
+//                .map(ResponseEntity::ok)
+//                .orElse(ResponseEntity.notFound().build());
+//    }
+    
+    @GetMapping("/{id}/with-details")
+    public ResponseEntity<Reservation> getReservationByIdWithDetails(@PathVariable Long id) {
+        return reservationService.getReservationWithDetails(id)
+        		.map(ResponseEntity::ok)
+        		.orElse(ResponseEntity.notFound().build());
     }
     
+    @GetMapping
+    public List<ReservationProjection> getAllReservations() {
+        return reservationService.getAllReservationProjections();
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<Reservation> getReservationById(@PathVariable Long id) {
-        return reservationService.getReservationById(id)
+    public ResponseEntity<ReservationProjection> getReservationById(@PathVariable Long id) {
+        return reservationService.getReservationProjectionById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    @GetMapping("/status/{status}")
+    public List<ReservationProjection> getReservationsByStatus(@PathVariable String status) {
+        return reservationService.getReservationProjectionsByStatus(status);
+    }
+    
+    @GetMapping("/car/{carId}")
+    public List<ReservationProjection> getReservationsByCar(@PathVariable Long carId) {
+        return reservationService.getReservationProjectionsByCarId(carId);
+    }
+    
+    @GetMapping("/client/{clientId}")
+    public List<ReservationProjection> getReservationsByClient(@PathVariable Long clientId) {
+        return reservationService.getReservationProjectionsByClientId(clientId);
+    }
+    
+    @GetMapping("/statistics")
+    public Map<String, Object> getReservationStatistics() {
+        return reservationService.getReservationStatistics();
+    }
+    
     @PostMapping
     public ResponseEntity<Reservation> createReservation(@RequestBody Reservation reservation) {
-        Reservation createdReservation = reservationService.createReservation(reservation);
+        Reservation createdReservation = reservationService.save(reservation);
         return createdReservation != null 
                 ? ResponseEntity.status(HttpStatus.CREATED).body(createdReservation) 
                 : ResponseEntity.badRequest().build();
@@ -79,20 +124,20 @@ public class ReservationController {
    	 *				SEARCH & FILTERS OPERATIONS
      */ 
     
-    @GetMapping("/car/{carId}")
-    public ResponseEntity<List<Reservation>> getReservationsByCar(@PathVariable Long carId) {
-        return ResponseEntity.ok(reservationService.getReservationsByCar(carId));
-    }
-    
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<Reservation>> getReservationsByStatus(@PathVariable String status) {
-        return ResponseEntity.ok(reservationService.getReservationsByStatus(status));
-    }
-    
-    @GetMapping("/client/{clientId}")
-    public ResponseEntity<List<Reservation>> getReservationsByClient(@PathVariable Long clientId){
-    	return ResponseEntity.ok(reservationService.getReservationsByClient(clientId));
-    }
+//    @GetMapping("/car/{carId}")
+//    public ResponseEntity<List<Reservation>> getReservationsByCar(@PathVariable Long carId) {
+//        return ResponseEntity.ok(reservationService.getReservationsByCar(carId));
+//    }
+//    
+//    @GetMapping("/status/{status}")
+//    public ResponseEntity<List<Reservation>> getReservationsByStatus(@PathVariable String status) {
+//        return ResponseEntity.ok(reservationService.getReservationsByStatus(status));
+//    }
+//    
+//    @GetMapping("/client/{clientId}")
+//    public ResponseEntity<List<Reservation>> getReservationsByClient(@PathVariable Long clientId){
+//    	return ResponseEntity.ok(reservationService.getReservationsByClient(clientId));
+//    }
     
     @GetMapping("/deposit-status")
     public ResponseEntity<List<Reservation>> getReservationsByDepositStatus(@RequestParam Boolean depositPaid) {
@@ -164,10 +209,10 @@ public class ReservationController {
 	 *				STATISTICS AND ANALYTICS
      */
     
-    @GetMapping("/statistics")
-    public ResponseEntity<Map<String, Object>> getReservationStatistics() {
-        return ResponseEntity.ok(reservationService.getReservationStatistics());
-    }
+//    @GetMapping("/statistics")
+//    public ResponseEntity<Map<String, Object>> getReservationStatistics() {
+//        return ResponseEntity.ok(reservationService.getReservationStatistics());
+//    }
     
     @GetMapping("/active/car/{carId}")
     public ResponseEntity<List<Reservation>> getActiveReservationsByCar(@PathVariable Long carId) {
